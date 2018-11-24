@@ -5,6 +5,10 @@ This package lets you know if migrations can be run safely.
 
 This package works with Django>2.0 only.
 
+## Installation
+
+`python setup.py install`
+
 ## Usage
 
 Run this command after migrations are generated and before they are applied.
