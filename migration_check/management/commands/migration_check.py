@@ -5,8 +5,10 @@ from importlib import import_module, reload
 from django.apps import apps
 from django.db import connection
 from django.conf import settings
-
 from django.core.management.base import BaseCommand
+from django.db.migrations.operations import fields, models
+
+from migration_check.rules import DESTRUCTIVE_OPERATIONS, NON_DESTRUCTIVE_OPERATIONS
 
 MIGRATIONS_MODULE_NAME = "migrations"
 
@@ -20,7 +22,37 @@ class Command(BaseCommand):
     def _get_migrations(self):
         self.load_disk()
 
-        print(self._get_all_migration_changes())
+        changes = self._get_all_migration_changes()
+
+        for change in changes:
+            changed_migration = changes[change]
+            operations = changed_migration.operations
+
+            for operation in operations:
+                field_null_option = operation.field.null
+                print(self._validate_rules(operation, field_null_option))
+
+    @staticmethod
+    def _validate_rules(operation, field_null_option):
+        destructive_rules = DESTRUCTIVE_OPERATIONS
+        is_destructive = False
+
+        destructive_fields = {
+            "fields": []
+        }
+
+        for rule in destructive_rules:
+            if issubclass(operation.__class__, rule):
+                # Check field options
+                rule_value = destructive_rules[rule]
+                if rule_value["field_options"]:
+                    if rule_value["field_options"]["null"] == field_null_option:
+                        is_destructive = True
+
+                        model_field = "{}.{}".format(operation.model_name, operation.name)
+                        destructive_fields["fields"].append(model_field)
+
+        return is_destructive, destructive_fields
 
     def _get_all_migration_changes(self):
         """
@@ -51,7 +83,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def dictfetchall(cursor):
-        "Return all rows from a cursor as a dict"
+        """Return all rows from a cursor as a dict"""
         columns = [col[0] for col in cursor.description]
         return [
             dict(zip(columns, row))
