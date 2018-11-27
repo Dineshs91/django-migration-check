@@ -29,7 +29,10 @@ class Command(BaseCommand):
             operations = changed_migration.operations
 
             for operation in operations:
-                field_null_option = operation.field.null
+                if hasattr(operation, "field"):
+                    field_null_option = operation.field.null
+                else:
+                    field_null_option = None
                 print(self._validate_rules(operation, field_null_option))
 
     @staticmethod
@@ -51,6 +54,10 @@ class Command(BaseCommand):
 
                         model_field = "{}.{}".format(operation.model_name, operation.name)
                         destructive_fields["fields"].append(model_field)
+                else:
+                    is_destructive = True
+                    model_field = "{}.{}".format(operation.model_name, operation.name)
+                    destructive_fields["fields"].append(model_field)
 
         return is_destructive, destructive_fields
 
@@ -82,7 +89,7 @@ class Command(BaseCommand):
         return db_migrations_set
 
     @staticmethod
-    def dictfetchall(cursor):
+    def dict_fetch_all(cursor):
         """Return all rows from a cursor as a dict"""
         columns = [col[0] for col in cursor.description]
         return [
@@ -96,7 +103,7 @@ class Command(BaseCommand):
         """
         with connection.cursor() as cursor:
             cursor.execute("SELECT * FROM django_migrations;")
-            rows = self.dictfetchall(cursor)
+            rows = self.dict_fetch_all(cursor)
 
         return rows
 
