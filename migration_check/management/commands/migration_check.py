@@ -35,8 +35,7 @@ class Command(BaseCommand):
                     field_null_option = None
                 print(self._validate_rules(operation, field_null_option))
 
-    @staticmethod
-    def _validate_rules(operation, field_null_option):
+    def _validate_rules(self, operation, field_null_option):
         destructive_rules = DESTRUCTIVE_OPERATIONS
         is_destructive = False
 
@@ -51,15 +50,19 @@ class Command(BaseCommand):
                 if rule_value["field_options"]:
                     if rule_value["field_options"]["null"] == field_null_option:
                         is_destructive = True
-
-                        model_field = "{}.{}".format(operation.model_name, operation.name)
-                        destructive_fields["fields"].append(model_field)
+                        destructive_fields["fields"].append(self._get_model_field(operation))
                 else:
                     is_destructive = True
-                    model_field = "{}.{}".format(operation.model_name, operation.name)
-                    destructive_fields["fields"].append(model_field)
+                    destructive_fields["fields"].append(self._get_model_field(operation))
 
         return is_destructive, destructive_fields
+
+    @staticmethod
+    def _get_model_field(operation):
+        if operation.__class__ == models.DeleteModel:
+            return operation.name
+        model_field = "{}.{}".format(operation.model_name, operation.name)
+        return model_field
 
     def _get_all_migration_changes(self):
         """
@@ -89,7 +92,7 @@ class Command(BaseCommand):
         return db_migrations_set
 
     @staticmethod
-    def dict_fetch_all(cursor):
+    def dictfetchall(cursor):
         """Return all rows from a cursor as a dict"""
         columns = [col[0] for col in cursor.description]
         return [
@@ -103,7 +106,7 @@ class Command(BaseCommand):
         """
         with connection.cursor() as cursor:
             cursor.execute("SELECT * FROM django_migrations;")
-            rows = self.dict_fetch_all(cursor)
+            rows = self.dictfetchall(cursor)
 
         return rows
 
