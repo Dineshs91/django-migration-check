@@ -9,6 +9,14 @@ This package works with Django>2.0 only.
 
 `python setup.py install`
 
+or 
+
+add this line to your `requirements.txt` file.
+
+`-e git://github.com/Dineshs91/django-migration-check.git#egg=django-migration-check`
+
+Add to `migration_check` to `INSTALLED_APPS`.
+
 ## Usage
 
 Run this command after migrations are generated and before they are applied.
